@@ -13,7 +13,10 @@ pip install uv
 ```
 
 Next, navigate to your project directory and install the dependencies:
-
+(Note!) If running on macos with conda, run this command to avoid platform error: 
+```bash
+conda install -c conda-forge onnxruntime=1.22.0
+```
 (Optional) Lock the dependencies and install them by using the CLI command:
 ```bash
 crewai install
