@@ -1,84 +1,63 @@
-chatting:
-  description: >
-    {young_writer} just reached out with a super important ask:\n
-    {inquiry}\n\n
-    {person} from {young_writer} is the one that reached out.
-    Make sure to use everything you know
-    to provide the best support possible.
-    You must strive to provide a complete 
-    and accurate response to the young_writer's inquiry.
-  expected_output: >
-    A detailed, informative response to the
-    young_writer's inquiry that addresses 
-    all aspects of their question.\n
-    Ask questions to learn young_writer's persona, 
-    including name, age, gender, school grade, characteristcs.
-    Pass yount_writer's inquiry to planner.
-    Gather information from planner
-    The response should include references,
-    to everything you used to find the answer,
-    including external data or solutions.
-    Ensure the answer is complete,
-    leaving no questions unanswered, and maintain a helpful and friendly
-    tone throughout.
-  agent: support_representative
+fetch_profile:
+  description: "Load the profile for user '{user_id}'."
+  expected_output: "A JSON blob with user profile information."
+  agent: profile_manager
+  human_input: false
 
-quality_assurance_review:
-  description: >
-    Review the response drafted by the Senior Support Representative for {customer}'s inquiry.
-    {young_writer} just reached out with a super important ask:\n
-    {inquiry}\n\n
-    {person} from {young_writer} is the one that reached out.
-    Make sure to use everything you know
-    to provide the best support possible.
-    You must strive to provide a complete 
-    and accurate response to the young_writer's inquiry.
-  expected_output: >
-    A detailed, informative response to the
-    young_writer's inquiry that addresses 
-    all aspects of their question.\n
-    Ask questions to learn young_writer's persona, 
-    including name, age, gender, school grade, characteristcs.
-    Pass yount_writer's inquiry to planner.
-    Gather information from planner
-    The response should include references,
-    to everything you used to find the answer,
-    including external data or solutions.
-    Ensure the answer is complete,
-    leaving no questions unanswered, and maintain a helpful and friendly
-    tone throughout.
-  agent: support_representative
+collect_writing_specs:
+  description: |
+    You are helping the student prepare an essay on "{topic}".
+    Ask any clarifying questions (length, audience, tone, paragraph focus)
+    **then** summarise their answers in bullet form prefixed with "SPEC:".
+  expected_output: "A tidy bullet-list of writing specs starting with 'SPEC:'."
+  agent: conversation_guide
+  human_input: true
 
-research_task:
-  description: >
-    Conduct a thorough research about {topic}
-    Make sure you find any interesting and relevant information given
-    the current year is {current_year}.
-    Make sure content is proper for age group of {young_writer}
+draft_outline:
+  description: |
+    Using the specs and the student's profile, create a numbered outline.
+    Give each paragraph a short hint line.
+  expected_output: "An ordered outline and hints."
+  agent: outline_planner
+  human_input: false
 
-  expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
-  agent: researcher
+deliver_outline:
+  description: "Present the outline and confirm the student is ready to write."
+  expected_output: "A friendly confirmation."
+  agent: conversation_guide
+  human_input: true
 
-guidline_task:
-  description:>
-    Based on the result from support_representative and research,
-    write a write plan for {topic}
-    Organize writing plan into an introduction, body paragraphs, and a conclusion,
-    making each paragraph focuses on a specific point related to {topic}.
-    Create a plan for each paragraph, including the topic sentence, supporting evidence, and analysis.
-  expected_output: >
-    A write plan about {topic} follow literal school essay best practice. 
-  agent: organizer
-
-
-reporting_task:
-  description: >
-    Review the context you got and expand each topic into a full section for a report.
-    Make sure the report is detailed and contains any and all relevant information.
-  expected_output: >
-    A fully fledged report with the main topics, each with a full section of information.
-    Formatted as markdown without '```'
-    You are mainly reviews the user’s paper, provides pros, cons, and how to improve. 
-    There will be multi-iterative in this step.
+evaluate_draft:
+  description: |
+    The student has submitted a draft essay.
+    Score it (0-100) for grammar, clarity, structure, and spec compliance.
+    Return **only** a JSON like:
+    {% raw %}
+    {
+      "score": 88,
+      "passed": true,
+      "issues": ["…", "…"]
+    }
+    {% endraw %}
+    Pass if score >= 80.
+  expected_output: "A JSON object exactly in the form above."
   agent: reviewer
+  human_input: false
+
+coach_improvements:
+  description: |
+    The draft needs work. Below are the issues detected by the reviewer.
+    Use them to give concrete advice and encourage the student to rewrite
+    and resubmit.
+  expected_output: "Targeted feedback and rewrite instructions."
+  agent: improvement_coach
+  context: [evaluate_draft]   # let CrewAI pass the whole JSON
+  human_input: true
+
+appraise_progress:
+  description: |
+    Congratulate the learner on the accepted essay about "{topic}".
+    Compare briefly with past work and highlight at least one improvement.
+  expected_output: "A short progress report."
+  agent: progress_analyst
+  human_input: false

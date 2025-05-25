@@ -1,0 +1,9 @@
+{
+    "demo_user": {
+      "age": 8,
+      "grade": 3,
+      "skill_level": "beginner",
+      "weak_areas": ["organization", "comma splices"],
+      "history": []
+    }
+}

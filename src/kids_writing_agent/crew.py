@@ -1,64 +1,143 @@
+# src/latest_ai_development/crew.py
 from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
+from crewai.project import CrewBase, agent, crew, task, before_kickoff, after_kickoff
+from crewai_tools import SerperDevTool
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
-# If you want to run a snippet of code before or after the crew starts,
-# you can use the @before_kickoff and @after_kickoff decorators
-# https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
+from src.kids_writing_agent.tools.profile_loader import ProfileLoader
+from crewai_tools import FileReadTool
+
 
 @CrewBase
 class KidsWritingAgent():
-    """KidsWritingAgent crew"""
+  """LatestAiDevelopment crew"""
 
-    agents: List[BaseAgent]
-    tasks: List[Task]
+  agents: List[BaseAgent]
+  tasks: List[Task]
 
-    # Learn more about YAML configuration files here:
-    # Agents: https://docs.crewai.com/concepts/agents#yaml-configuration-recommended
-    # Tasks: https://docs.crewai.com/concepts/tasks#yaml-configuration-recommended
-    
-    # If you would like to add tools to your agents, you can learn more about it here:
-    # https://docs.crewai.com/concepts/agents#agent-tools
-    @agent
-    def researcher(self) -> Agent:
-        return Agent(
-            config=self.agents_config['researcher'], # type: ignore[index]
-            verbose=True
-        )
 
-    @agent
-    def reporting_analyst(self) -> Agent:
-        return Agent(
-            config=self.agents_config['reporting_analyst'], # type: ignore[index]
-            verbose=True
-        )
+  @before_kickoff
+  def before_kickoff_function(self, inputs):
+    print(f"Before kickoff function with inputs: {inputs}")
+    return inputs # You can return the inputs or modify them as needed
 
-    # To learn more about structured task outputs,
-    # task dependencies, and task callbacks, check out the documentation:
-    # https://docs.crewai.com/concepts/tasks#overview-of-a-task
-    @task
-    def research_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['research_task'], # type: ignore[index]
-        )
+  @after_kickoff
+  def after_kickoff_function(self, result):
+    print(f"After kickoff function with result: {result}")
+    return result # You can return the result or modify it as needed
+  
+  ##################
+  # Agents
+  ##################
+  @agent
+  def profile_manager(self) -> Agent:
+    return Agent(
+      config=self.agents_config['profile_manager'], # type: ignore[index]
+      verbose=True,
+      tools=[FileReadTool(file_path='../../data/profiles.json')]
+    )
+  
+  @agent
+  def conversation_guide(self) -> Agent:
+    return Agent(
+      config=self.agents_config['conversation_guide'], # type: ignore[index]
+      verbose=True
+    )
+  
+  @agent
+  def outline_planner(self) -> Agent:
+    return Agent(
+      config=self.agents_config['outline_planner'], # type: ignore[index]
+      verbose=True
+    )
+  
+  @agent
+  def reviewer(self) -> Agent:
+    return Agent(
+      config=self.agents_config['reviewer'], # type: ignore[index]
+      verbose=True
+    )
+  
+  @agent
+  def manager(self) -> Agent:
+    return Agent(
+      config=self.agents_config['manager'], # type: ignore[index]
+      verbose=True
+    )
+  
+  @agent
+  def improvement_coach(self) -> Agent:
+    return Agent(
+      config=self.agents_config['improvement_coach'], # type: ignore[index]
+      verbose=True
+    )
+  
+  @agent
+  def progress_analyst(self) -> Agent:
+    return Agent(
+      config=self.agents_config['progress_analyst'], # type: ignore[index]
+      verbose=True
+    )
+  
+  ##################
+  # Tasks
+  ##################
+  @task
+  def fetch_profile(self) -> Task:
+    return Task(
+      config=self.tasks_config['fetch_profile'], # type: ignore[index]
+      tools=[FileReadTool(file_path='../../data/profiles.json')]
+    )
+  
+  @task
+  def collect_writing_specs(self) -> Task:
+    return Task(
+      config=self.tasks_config['collect_writing_specs'], # type: ignore[index]
+    )
+  
+  @task
+  def draft_outline(self) -> Task:
+    return Task(
+      config=self.tasks_config['draft_outline'], # type: ignore[index]
+    )
+  
+  @task
+  def deliver_outline(self) -> Task:
+    return Task(
+      config=self.tasks_config['deliver_outline'], # type: ignore[index]
+    )
+  
+  @task
+  def evaluate_draft(self) -> Task:
+    return Task(
+      config=self.tasks_config['evaluate_draft'], # type: ignore[index]
+    )
+  
+  @task
+  def coach_improvements(self) -> Task:
+    return Task(
+      config=self.tasks_config['coach_improvements'], # type: ignore[index]
+    )
+  
+  @task
+  def appraise_progress(self) -> Task:
+    return Task(
+      config=self.tasks_config['appraise_progress'], # type: ignore[index]
+    )
 
-    @task
-    def reporting_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['reporting_task'], # type: ignore[index]
-            output_file='report.md'
-        )
-
-    @crew
-    def crew(self) -> Crew:
-        """Creates the KidsWritingAgent crew"""
-        # To learn how to add knowledge sources to your crew, check out the documentation:
-        # https://docs.crewai.com/concepts/knowledge#what-is-knowledge
-
-        return Crew(
-            agents=self.agents, # Automatically created by the @agent decorator
-            tasks=self.tasks, # Automatically created by the @task decorator
-            process=Process.sequential,
-            verbose=True,
-            # process=Process.hierarchical, # In case you wanna use that instead https://docs.crewai.com/how-to/Hierarchical/
-        )
+  @crew
+  def crew(self) -> Crew:
+    """Creates the LatestAiDevelopment crew"""
+    return Crew(
+      agents=[self.profile_manager(), 
+              self.conversation_guide(),
+              self.outline_planner(),
+              self.reviewer(),
+              self.improvement_coach(),
+              self.progress_analyst()], # Automatically created by the @agent decorator
+      tasks=self.tasks, # Automatically created by the @task decorator
+      manager_agent=self.manager(),
+      process=Process.hierarchical,
+      # process=Process.sequential,
+      verbose=True,
+    )
