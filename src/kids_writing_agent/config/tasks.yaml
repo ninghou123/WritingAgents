@@ -2,35 +2,36 @@ fetch_profile:
   description: "Load the profile for user '{user_id}'."
   expected_output: "A JSON blob with user profile information."
   agent: profile_manager
-  human_input: false
 
-collect_writing_specs:
+
+collect_writing_ideas:
   description: |
     You are helping the student prepare an essay on "{topic}".
-    Ask any clarifying questions (length, audience, tone, paragraph focus)
-    **then** summarise their answers in bullet form prefixed with "SPEC:".
-  expected_output: "A tidy bullet-list of writing specs starting with 'SPEC:'."
+    Ask engaging questions to gather their ideas.
+    Use the student's profile to guide your questions.
+  expected_output: "A tidy bullet-list of writing ideas"
   agent: conversation_guide
-  human_input: true
+
 
 draft_outline:
   description: |
-    Using the specs and the student's profile, create a numbered outline.
+    Using the ideas gathered and the student's profile, create a numbered outline.
     Give each paragraph a short hint line.
   expected_output: "An ordered outline and hints."
   agent: outline_planner
-  human_input: false
 
-deliver_outline:
-  description: "Present the outline and confirm the student is ready to write."
-  expected_output: "A friendly confirmation."
+deliver_outline :
+  description: |
+    Present the ordered outline and hints to the student.
+    Store the essay student submitted as "draft_essay".
+  expected_output: "{draft_essay}"
   agent: conversation_guide
-  human_input: true
+
 
 evaluate_draft:
   description: |
     The student has submitted a draft essay.
-    Score it (0-100) for grammar, clarity, structure, and spec compliance.
+    Score it (0-100) for grammar, clarity, structure, and topic compliance.
     Return **only** a JSON like:
     {% raw %}
     {
@@ -42,7 +43,7 @@ evaluate_draft:
     Pass if score >= 80.
   expected_output: "A JSON object exactly in the form above."
   agent: reviewer
-  human_input: false
+
 
 coach_improvements:
   description: |
@@ -51,7 +52,7 @@ coach_improvements:
     and resubmit.
   expected_output: "Targeted feedback and rewrite instructions."
   agent: improvement_coach
-  context: [evaluate_draft]   # let CrewAI pass the whole JSON
+  context: [evaluate_draft]   
   human_input: true
 
 appraise_progress:
@@ -60,4 +61,4 @@ appraise_progress:
     Compare briefly with past work and highlight at least one improvement.
   expected_output: "A short progress report."
   agent: progress_analyst
-  human_input: false
+

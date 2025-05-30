@@ -1,4 +1,5 @@
 # src/latest_ai_development/crew.py
+import os
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task, before_kickoff, after_kickoff
 from crewai_tools import SerperDevTool
@@ -6,7 +7,19 @@ from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
 from src.kids_writing_agent.tools.profile_loader import ProfileLoader
 from crewai_tools import FileReadTool
+from crewai.telemetry import Telemetry
 
+
+def noop(*args, **kwargs):
+    # with open("./logfile.txt", "a") as f:
+    #     f.write("Telemetry method called and noop'd\n")
+    pass
+
+
+for attr in dir(Telemetry):
+    if callable(getattr(Telemetry, attr)) and not attr.startswith("__"):
+        setattr(Telemetry, attr, noop)
+os.environ["OTEL_SDK_DISABLED"] = "true"
 
 @CrewBase
 class KidsWritingAgent():
@@ -34,7 +47,7 @@ class KidsWritingAgent():
     return Agent(
       config=self.agents_config['profile_manager'], # type: ignore[index]
       verbose=True,
-      tools=[FileReadTool(file_path='../../data/profiles.json')]
+      # tools=[FileReadTool(file_path='../../data/profiles.json')]
     )
   
   @agent
@@ -86,7 +99,7 @@ class KidsWritingAgent():
   def fetch_profile(self) -> Task:
     return Task(
       config=self.tasks_config['fetch_profile'], # type: ignore[index]
-      tools=[FileReadTool(file_path='../../data/profiles.json')]
+      # tools=[FileReadTool(file_path='../../data/profiles.json')]
     )
   
   @task
