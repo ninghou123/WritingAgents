@@ -55,3 +55,6 @@ For support, questions, or feedback regarding the KidsWritingAgent Crew or crewA
 - [Chat with our docs](https://chatg.pt/DWjSBZn)
 
 Let's create wonders together with the power and simplicity of crewAI.
+
+# to export an .env file:
+export $(grep -v '^#' .env | xargs -d '\n')

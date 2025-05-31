@@ -12,31 +12,21 @@ from crewai.agent import Agent
 from crewai.flow.flow import Flow, start, listen, router
 from crewai.tools import BaseTool
 
+from helpers import ux
+
+
 # ------------------------------------------------------------------
 # 0-bis.  Grade-to-writing expectations (tweak as needed)
 # ------------------------------------------------------------------
 GRADE_GUIDE = {
-    1: {"paras": 2, "min_words": 40,  "max_words": 700},
-    2: {"paras": 3, "min_words": 60,  "max_words": 1000},
-    3: {"paras": 3, "min_words": 80,  "max_words": 1500},   # Reading Rockets, Reddit teacher
-    4: {"paras": 4, "min_words": 120, "max_words": 2000},
-    5: {"paras": 4, "min_words": 150, "max_words": 3000},
-    6: {"paras": 5, "min_words": 200, "max_words": 4000},
+    1: {"paras": 1, "min_words": 40,  "max_words": 70},
+    2: {"paras": 2, "min_words": 60,  "max_words": 100},
+    3: {"paras": 2, "min_words": 80,  "max_words": 150},  
+    4: {"paras": 3, "min_words": 120, "max_words": 200},
+    5: {"paras": 3, "min_words": 150, "max_words": 300},
+    6: {"paras": 4, "min_words": 200, "max_words": 400},
 }
 
-# ──────────────────────────────────────────────────────
-# 1.  Custom tool that actually talks to the child
-# ──────────────────────────────────────────────────────
-class AskStudentTool(BaseTool):
-    name: str = "ask_student"
-    description: str = "Prompt the student and capture the reply"
-
-    def _run(self, question: str) -> str:
-        return input(f"\n👩‍🏫 {question}\n🧑‍🎓 > ").strip()
-
-    # quality-of-life wrapper so we can call tool.run()
-    def run(self, *, question: str) -> str:
-        return self._run(question)
 
 # ──────────────────────────────────────────────────────
 # 2.  All agents from your YAML (prompts kept verbatim)
@@ -57,7 +47,7 @@ profile_manager = Agent(
           ]
         }
     """).strip(),
-    verbose=False,
+    verbose=True,
 )
 
 
@@ -69,36 +59,35 @@ conversation_guide = Agent(
         You use light, friendly Socratic questions to study the topic
         and keep the learner engaged.
         You always ask one clear question at a time.""",
-    tools=[AskStudentTool()],
-    verbose=False,
+    verbose=True,
 )
 
 outline_planner = Agent(
     role="Outline Planner",
     goal="Turn early ideas into a usable outline + hints",
     backstory="Veteran writing tutor who organises information clearly.",
-    verbose=False,
+    verbose=True,
 )
 
 reviewer = Agent(
     role="Writing Reviewer",
     goal="Score the draft for grammar, structure, and requirement fulfilment",
     backstory="Exacting English teacher with a fair but firm rubric.",
-    verbose=False,
+    verbose=True,
 )
 
 improvement_coach = Agent(
     role="Improvement Coach",
     goal="Give actionable, motivating feedback when the draft misses the mark",
     backstory="Encouraging but precise.",
-    verbose=False,
+    verbose=True,
 )
 
 progress_analyst = Agent(
     role="Progress Analyst",
     goal="Spot and celebrate concrete improvements over time",
     backstory="Compares current work to the student's history to show growth.",
-    verbose=False,
+    verbose=True,
 )
 
 # ──────────────────────────────────────────────────────
@@ -109,8 +98,7 @@ class EssayCoachFlow(Flow[dict]):
     # ---------- phase 1 : get topic & profile ----------
     @start()
     def intake(self) -> dict:
-        topic = input("📝 Topic?  ").strip()
-        req   = input("📋 Special requirements? (press Enter for none)  ").strip()
+
 
         # --- ask ONLY for age & grade ---
         age_grade_output = profile_manager.kickoff(
@@ -129,6 +117,13 @@ class EssayCoachFlow(Flow[dict]):
         )
         full_profile = json.loads(full_profile_output.raw.strip())
 
+        ux.out.put("Hello! I'm WritePal, your K-12 essay coach. ")
+        # topic = ux.ask("📝 Topic?  ").strip()
+        # req   = ux.ask("📋 Special requirements? (press Enter for none)  ").strip()
+        topic = "Your Favorite Animal"
+        req   = ""
+        ux.ask(f"Let's write for \n📝 Topic: {topic}\n")
+
         return {
             "topic": topic,
             "req": req,
@@ -146,20 +141,22 @@ class EssayCoachFlow(Flow[dict]):
         Stage 2 → conversation_guide probes to deepen / clarify ONLY those ideas
         Stage 3 → agent returns [DONE] + bullet list once it has ≥ needed ideas
         """
-        ask_tool = AskStudentTool()
 
-        print(
-            "\n📝 Think for a minute about everything that comes to mind on the topic "
-            f'"{data["topic"]}".  Type ONE idea per line—words, memories, reasons, '
-            "feelings. After you finish, type DONE."
-        )
-        raw_lines: list[str] = []
-        while True:
-            line = input("💡 ").strip()
-            if line.upper() == "DONE":
-                break
-            if line:
-                raw_lines.append(line)
+        # ux.out.put(
+        #     "\n📝 Think for a minute about everything that comes to mind on the topic "
+        #     f'"{data["topic"]}".  Like: words, memories, reasons, '
+        #     "feelings. After you finish, type DONE."
+        # )
+        # raw_lines: list[str] = []
+        # while True:
+        #     line = ux.ask("💡 ").strip()
+        #     if line.upper() == "DONE":
+        #         break
+        #     if line:
+        #         raw_lines.append(line)
+
+        raw_lines = ux.ask("\n📝 Think for a minute about everything that comes to mind on the topic "
+            f'"{data["topic"]}".  Like: words, memories, reasons, feelings')
 
         # Store the student-owned seeds
         qa_history: list[dict[str, str]] = [{
@@ -180,7 +177,7 @@ class EssayCoachFlow(Flow[dict]):
                 f"Student profile:\n{json.dumps(data['profile'])}\n\n"
                 "Conversation so far:\n" +
                 "\n".join(f"Q: {p['q']}\nA: {p['a']}" for p in qa_history) +
-                "\n\nAsk ONE open follow-up question that clarifies or deepens.\n"
+                "\n\nAsk ONE open follow-up question that clarifies or deepens or broadens. Do NOT show thinking or thought\n"
                 f"When you have at least {data['guide']['paras']} RICH body ideas, "
                 "answer EXACTLY like:\n"
                 "[DONE]\n• idea 1\n• idea 2\n• idea 3 …\n"
@@ -208,7 +205,7 @@ class EssayCoachFlow(Flow[dict]):
                 agent_reply = ("I might be mistaken, but " + agent_reply)
 
             # Otherwise ask the student and store the answer.
-            student_answer = ask_tool.run(question=agent_reply)
+            student_answer = ux.ask(f"\n👩‍🏫 {agent_reply}\n").strip()
             qa_history.append({"q": agent_reply, "a": student_answer})
 
     # ---------- phase 3 : draft outline ----------
@@ -223,20 +220,21 @@ class EssayCoachFlow(Flow[dict]):
             f"Ideas:\n{numbered}"
         )
         outline_text = outline_planner.kickoff(outline_prompt).raw
-        print("\n📑 Outline\n" + outline_text)
+        ux.out.put(f"\n📑 Outline\n {outline_text}")
         data["outline"] = outline_text
         return data
 
     # ---------- phase 4 : student writes ----------
     @listen(outline)
     def collect_draft(self, data):
-        print("\nPlease write your essay now. Finish with a blank line.")
-        lines: List[str] = []
-        while True:
-            line = input()
-            if not line.strip(): break
-            lines.append(line)
-        data["draft"] = "\n".join(lines)
+        # ux.out.put("\nPlease write your essay now.")
+        # lines: List[str] = []
+        # while True:
+        #     line = ux.ask()
+        #     if not line.strip(): break
+        #     lines.append(line)
+        # data["draft"] = "\n".join(lines)
+        data["draft"] = ux.ask("\nPlease write your essay now.")
         return data
 
     # ---------- phase 5 : review ----------
@@ -269,11 +267,11 @@ class EssayCoachFlow(Flow[dict]):
         feedback = improvement_coach.kickoff(
             f"The draft has these issues:\n{issues}\nGive encouraging, concrete advice."
         ).raw
-        print("\n🔍 Feedback\n" + feedback)
-        print("\nPlease revise your essay (blank line to finish).")
+        ux.out.put(f"\n🔍 Feedback\n {feedback}")
+        ux.out.put("\nPlease revise your essay (blank line to finish).")
         new_lines: List[str] = []
         while True:
-            ln = input()
+            ln = ux.ask()
             if not ln.strip(): break
             new_lines.append(ln)
         data["draft"] = "\n".join(new_lines)
@@ -289,7 +287,8 @@ class EssayCoachFlow(Flow[dict]):
             f"Old best: {last_score}, new score: {new_score}. "
             f"Congratulate and highlight the +{delta} improvement."
         ).raw
-        print("\n🎉 " + praise)
+        ux.out.put(f"\n🎉  {praise}")
+        ux.done()
         return "done"
 
 # ──────────────────────────────────────────────────────

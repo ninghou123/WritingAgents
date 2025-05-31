@@ -18,25 +18,12 @@ from crewai.tools import BaseTool
 GRADE_GUIDE = {
     1: {"paras": 2, "min_words": 40,  "max_words": 700},
     2: {"paras": 3, "min_words": 60,  "max_words": 1000},
-    3: {"paras": 3, "min_words": 80,  "max_words": 1500},   # Reading Rockets, Reddit teacher
+    3: {"paras": 3, "min_words": 80,  "max_words": 1500},  
     4: {"paras": 4, "min_words": 120, "max_words": 2000},
     5: {"paras": 4, "min_words": 150, "max_words": 3000},
     6: {"paras": 5, "min_words": 200, "max_words": 4000},
 }
 
-# ──────────────────────────────────────────────────────
-# 1.  Custom tool that actually talks to the child
-# ──────────────────────────────────────────────────────
-class AskStudentTool(BaseTool):
-    name: str = "ask_student"
-    description: str = "Prompt the student and capture the reply"
-
-    def _run(self, question: str) -> str:
-        return input(f"\n👩‍🏫 {question}\n🧑‍🎓 > ").strip()
-
-    # quality-of-life wrapper so we can call tool.run()
-    def run(self, *, question: str) -> str:
-        return self._run(question)
 
 # ──────────────────────────────────────────────────────
 # 2.  All agents from your YAML (prompts kept verbatim)
@@ -57,7 +44,7 @@ profile_manager = Agent(
           ]
         }
     """).strip(),
-    verbose=False,
+    verbose=True,
 )
 
 
@@ -69,36 +56,35 @@ conversation_guide = Agent(
         You use light, friendly Socratic questions to study the topic
         and keep the learner engaged.
         You always ask one clear question at a time.""",
-    tools=[AskStudentTool()],
-    verbose=False,
+    verbose=True,
 )
 
 outline_planner = Agent(
     role="Outline Planner",
     goal="Turn early ideas into a usable outline + hints",
     backstory="Veteran writing tutor who organises information clearly.",
-    verbose=False,
+    verbose=True,
 )
 
 reviewer = Agent(
     role="Writing Reviewer",
     goal="Score the draft for grammar, structure, and requirement fulfilment",
     backstory="Exacting English teacher with a fair but firm rubric.",
-    verbose=False,
+    verbose=True,
 )
 
 improvement_coach = Agent(
     role="Improvement Coach",
     goal="Give actionable, motivating feedback when the draft misses the mark",
     backstory="Encouraging but precise.",
-    verbose=False,
+    verbose=True,
 )
 
 progress_analyst = Agent(
     role="Progress Analyst",
     goal="Spot and celebrate concrete improvements over time",
     backstory="Compares current work to the student's history to show growth.",
-    verbose=False,
+    verbose=True,
 )
 
 # ──────────────────────────────────────────────────────
@@ -146,7 +132,6 @@ class EssayCoachFlow(Flow[dict]):
         Stage 2 → conversation_guide probes to deepen / clarify ONLY those ideas
         Stage 3 → agent returns [DONE] + bullet list once it has ≥ needed ideas
         """
-        ask_tool = AskStudentTool()
 
         print(
             "\n📝 Think for a minute about everything that comes to mind on the topic "
@@ -208,7 +193,7 @@ class EssayCoachFlow(Flow[dict]):
                 agent_reply = ("I might be mistaken, but " + agent_reply)
 
             # Otherwise ask the student and store the answer.
-            student_answer = ask_tool.run(question=agent_reply)
+            student_answer = input(f"\n👩‍🏫 {agent_reply}\n🧑‍🎓 > ").strip()
             qa_history.append({"q": agent_reply, "a": student_answer})
 
     # ---------- phase 3 : draft outline ----------
